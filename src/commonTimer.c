@@ -26,58 +26,49 @@
  *      Version Status: 0.3
  *      Feb, 11 2014	0.3	changed timers to be scalable by speed and added timer 0 1 ms
  *      11/5/14		0.1	setup first 100us counter
+ *
+ *      2019 modified by Hugo Schaaf v0.4
+ *      - adapt isr vectors in correlation with the user's timer choice
  */
-//avr includes
-#include <avr/common.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
-
 #include "commonTimer.h"
 
-uint64_t e_100microseconds = 0;
-uint64_t e_milliseconds = 0;
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * set up 100us interval timer interrupt
+ */
+#if USE100USTIMER == 1
 
-void init100usTimer2(uint64_t speed)
-{
-	uint8_t tmpSREG = 0;
+volatile uint64_t e_100microseconds = 0;
 
-	tmpSREG = SREG;
-	cli();
-
-	//setup 100_MICROSECONDS timer
-	TCCR2A = (1 << WGM21);
-	TCCR2B =  (1 << CS21) | (1 << CS20);
-	TIMSK2 = (1 << OCIE2A);
-	OCR2A = (25 * ((speed/1000000UL) >> 3) - 1);
-
-	SREG = tmpSREG;
-
-	sei();
-}
-
-void init1msTimer0(uint64_t speed)
-{
-	uint8_t tmpSREG = 0;
-
-	tmpSREG = SREG;
-	cli();
-
-	//setup timer0 for 1 ms counter
-	TCCR0A = (1 << WGM01);
-	TCCR0B = (1 << CS01) | (1 << CS00);
-	TIMSK0 = (1 << OCIE0A);
-	OCR0A = 125 * ((speed/1000000UL) >> 3) - 1;
-
-	SREG = tmpSREG;
-}
-
-//counts in microsecond increments
-ISR(TIMER2_COMPA_vect)
-{
-  e_100microseconds++;
-}
-//count millseconds
+/* increment by 100us step */
+#if __100USTIMER == 0
 ISR(TIMER0_COMPA_vect)
+#elif __100USTIMER == 1
+ISR(TIMER1_COMPA_vect)
+#else
+ISR(TIMER2_COMPA_vect)
+#endif
 {
-  e_milliseconds++;
+	e_100microseconds++;
 }
+#endif
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+ *set up 1ms interval timer interrupt
+ */
+#if USE1MSTIMER == 1
+
+volatile uint64_t e_1millisecond = 0;
+
+/* increment by 1ms */
+#if __1MSTIMER == 1
+ISR(TIMER1_COMPA_vect)
+#elif __1MSTIMER == 2
+ISR(TIMER2_COMPA_vect)
+#else
+ISR(TIMER0_COMPA_vect)
+#endif
+{
+  e_1millisecond++;
+}
+
+#endif
