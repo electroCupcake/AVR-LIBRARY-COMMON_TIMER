@@ -1,5 +1,5 @@
 /*
- * commonTimer.h
+ * commonTimer.c
  *
  *  Created on: Nov 6, 2014
  *      Author: John Convertino
@@ -23,20 +23,52 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- *      v0.3 see implementation file for details
+ *      Version Status: 0.3
+ *      Feb, 11 2014	0.3	changed timers to be scalable by speed and added timer 0 1 ms
+ *      11/5/14		0.1	setup first 100us counter
+ *
+ *      2019 modified by Hugo Schaaf v0.4
+ *      - adapt isr vectors in correlation with the user's timer choice
  */
+#include "commonTimer.h"
 
-#ifndef COMMONTIMER_H_
-#define COMMONTIMER_H_
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * set up 100us interval timer interrupt
+ */
+#if USE100USTIMER == 1
 
+volatile uint64_t e_100microseconds = 0;
 
-#include <inttypes.h>
+/* increment by 100us step */
+#if __100USTIMER == 0
+ISR(TIMER0_COMPA_vect)
+#elif __100USTIMER == 1
+ISR(TIMER1_COMPA_vect)
+#else
+ISR(TIMER2_COMPA_vect)
+#endif
+{
+	e_100microseconds++;
+}
+#endif
 
-//global counter variable
-extern uint64_t e_100microseconds;
-extern uint64_t e_milliseconds;
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+ *set up 1ms interval timer interrupt
+ */
+#if USE1MSTIMER == 1
 
-void init100usTimer2(uint64_t speed);
-void init1msTimer0(uint64_t speed);
+volatile uint64_t e_1millisecond = 0;
 
-#endif /* COMMONTIMER_H_ */
+/* increment by 1ms */
+#if __1MSTIMER == 1
+ISR(TIMER1_COMPA_vect)
+#elif __1MSTIMER == 2
+ISR(TIMER2_COMPA_vect)
+#else
+ISR(TIMER0_COMPA_vect)
+#endif
+{
+  e_1millisecond++;
+}
+
+#endif
